@@ -11,7 +11,24 @@ use Laravel\Sanctum\HasApiTokens;
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasApiTokens;
+    use HasApiTokens, HasFactory, Notifiable;
+
+    // Inside User.php
+    public function skills()
+    {
+        return $this->belongsToMany(Skill::class)->withPivot('proficiency')->withTimestamps();
+    }
+
+    public function courses()
+    {
+        // pivot table might contain the 'status' column
+        return $this->belongsToMany(Course::class)->withPivot('status')->withTimestamps();
+    }
+
+    public function career()
+    {
+        return $this->belongsTo(Career::class, 'career_id');
+    }
 
     /**
      * The attributes that are mass assignable.
@@ -22,6 +39,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'career_id',
     ];
 
     /**

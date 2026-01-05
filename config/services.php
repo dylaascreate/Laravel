@@ -34,5 +34,18 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
+    /*
+    |--------------------------------------------------------------------------
+    | Flask AI Service
+    |--------------------------------------------------------------------------
+    |
+    | Configuration for the internal Python/Flask microservice running Ollama.
+    |
+    */
+
+    'flask' => [
+        'url' => env('FLASK_API_URL', 'http://127.0.0.1:5001'),
+        'secret' => env('FLASK_API_SECRET'),
+    ],
 
 ];
