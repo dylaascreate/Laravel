@@ -16,6 +16,7 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->foreignId('skill_id')->constrained()->onDelete('cascade');
             $table->unsignedTinyInteger('proficiency')->default(0);
+            $table->boolean('verified')->default(false);
             $table->timestamps();
         });
     }

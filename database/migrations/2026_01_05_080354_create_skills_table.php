@@ -15,7 +15,7 @@ return new class extends Migration
         Schema::create('skills', function (Blueprint $table) {
             $table->id();
             $table->string('name')->unique();
-            $table->string(column: 'slug')->unique();
+            $table->string(column: 'slug')->nullable();
             $table->string('domain')->nullable(); // e.g., 'Backend', 'Soft Skill'
             $table->text('description')->nullable();
             $table->timestamps();

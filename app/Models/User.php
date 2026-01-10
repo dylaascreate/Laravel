@@ -13,7 +13,11 @@ class User extends Authenticatable
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasApiTokens, HasFactory, Notifiable;
 
-    // Inside User.php
+    public function roadmaps()
+    {
+        return $this->hasMany(Roadmap::class);
+    }
+    
     public function skills()
     {
         return $this->belongsToMany(Skill::class)->withPivot('proficiency')->withTimestamps();

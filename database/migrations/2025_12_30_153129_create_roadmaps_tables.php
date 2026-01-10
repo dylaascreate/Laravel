@@ -19,7 +19,8 @@ return new class extends Migration
             $table->text('course_code')->nullable();
             $table->string('estimate'); // "14 Weeks"
             $table->string('status')->default('active');
-            $table->integer('progress_percent')->default(0);
+            $table->integer('progress')->default(0);
+            $table->timestamps();
         });
 
         // 2. Phases

@@ -8,9 +8,17 @@ class RoadmapPhase extends Model
 {
     protected $guarded = [];
 
+    protected $fillable = ['roadmap_id', 'title', 'description', 'skills', 'order_index'];
+
+    // FIX: Add this $casts array
     protected $casts = [
-        'skills' => 'array', // Automatically convert JSON to Array
+        'skills' => 'array', // Automatically converts JSON string <-> PHP Array
     ];
+
+    public function roadmap()
+    {
+        return $this->belongsTo(Roadmap::class);
+    }
 
     public function tasks()
     {
