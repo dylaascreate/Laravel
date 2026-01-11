@@ -10,10 +10,14 @@ return new class extends Migration
     {
         Schema::create('careers', function (Blueprint $table) {
             $table->id();
-            $table->string('name')->unique(); // e.g. "Software Engineer"
-            $table->text('domain')->nullable();
+            $table->string('name')->unique(); // e.g. "Frontend Engineer"
+            $table->string('domain');       // e.g. "Engineering", "Design"
+            $table->string('status')->default('Active'); // e.g. "Active", "Draft"
             $table->text('description')->nullable();
-            $table->json('skills');
+
+            // Made nullable because the initial 'Create Career' form might not include skills
+            $table->json('skills')->nullable();
+
             $table->timestamps();
         });
     }

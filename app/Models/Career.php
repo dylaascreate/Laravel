@@ -9,8 +9,18 @@ class Career extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'domain', 'description'];
+    protected $fillable = [
+        'name',
+        'category',
+        'status',
+        'description',
+        'skills'
+    ];
 
+    protected $casts = [
+        'skills' => 'array', // Automatically cast JSON to array
+    ];
+    
     public function users()
     {
         return $this->hasMany(User::class);

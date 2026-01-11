@@ -17,6 +17,7 @@ class RoadmapController extends Controller
      */
     public function index(Request $request)
     {
+        $roadmaps = Roadmap::with('user')->latest()->get();
         $user = Auth::user();
         $query = $user->roadmaps();
 
@@ -115,42 +116,107 @@ class RoadmapController extends Controller
     {
         /** @var \App\Models\User $user */
         $user = Auth::user();
-
         set_time_limit(600);
-        // Fetch the name from the relationship, or fallback
-        $targetCareer = $user->career ? $user->career->name : 'Software Engineer';
-        // Get array of skill names from skill_user table
-        $skills = $user->skills()->pluck('name')->toArray();
-        // Get course history with codes and status
-        $userCourses = $user->courses()->select('course_code', 'status')->get()->toArray();
 
-        // Validate User Input
+        // 1. Validation: Adapted to handle both scenarios
         $request->validate([
-            'query' => 'required|string',
-            'level' => 'required|string',
-            'type' => 'nullable|string',
+            // Query is nullable because Scenario 2 uses 'missing_skills' instead
+            'query' => 'nullable|string',
+            // Level/Type nullable because Scenario 2 has hardcoded defaults
+            'level' => 'nullable|string',
+            'type'  => 'nullable|string',
+
+            // Scenario 2 specific inputs
+            'target_career'  => 'nullable|string', // The name passed from pathway result
+            'missing_skills' => 'nullable|string', // Used as query for Scenario 2
         ]);
 
-        $payload = $this->preparePayload($request, $targetCareer, $skills, $userCourses);
+        // Initialize variables
+        $targetCareerName = 'Software Engineer'; // Fallback
+        $queryText = '';
+        $level = 'Beginner';
+        $type = 'general';
+
+        // =========================================================
+        // CONDITION 2: Career Roadmap from Initialize Pathway
+        // Trigger: If 'target_career' AND 'missing_skills' are provided
+        // =========================================================
+        if ($request->filled('target_career') && $request->filled('missing_skills')) {
+
+            // 1. Fetch result target career directly (Did not fetch DB)
+            $targetCareerName = $request->input('target_career');
+
+            // 2. Use missing skill as query
+            $queryText = $request->input('missing_skills');
+
+            // 3. Defaults for this scenario
+            $level = 'Intermediate';
+            $type = 'general';
+        }
+
+        // =========================================================
+        // CONDITION 1: Normal General and Academic Roadmap
+        // Trigger: Default behavior if Scenario 2 conditions aren't met
+        // =========================================================
+        else {
+            // 1. Fetch user target career from DB
+            if ($user->career) {
+                $targetCareerName = $user->career->name;
+            }
+
+            // 2. Use User Inputs
+            $queryText = $request->input('query'); // Must be provided in this scenario
+            $level = $request->input('level', 'Beginner');
+            $type = $request->input('type', 'general');
+
+            // Safety check: specific validation for Scenario 1
+            if (empty($queryText)) {
+                return response()->json(['message' => 'Query is required for normal generation.'], 422);
+            }
+        }
+
+        // =========================================================
+        // PREPARE & EXECUTE
+        // =========================================================
+
+        // Get student info (skills & courses) used in both scenarios
+        $skills = $user->skills()->pluck('name')->toArray();
+        $userCourses = $user->courses()->select('course_code', 'status')->get()->toArray();
+
+        // FIXED: Pass the calculated variables ($type, $queryText, $level)
+        $payload = $this->preparePayload(
+            $type,
+            $queryText,
+            $level,
+            $targetCareerName,
+            $skills,
+            $userCourses
+        );
 
         try {
-            // 1. Get the FULL response (Fix the callFlaskApi method first as shown previously)
+            // 1. Get the FULL response
             $fullResponse = $this->callFlaskApi($payload);
 
             // 2. Isolate the AI roadmap data
             $aiRoadmapData = $fullResponse['roadmap'];
 
-            // 3. CRITICAL: MAP DATA TO YOUR DB COLUMN
-            // Flask sends: { "course_info": { "code": "CSC123" } }
-            // Laravel DB needs: 'course_code'
+            // 3. Map Course Code
             if (isset($fullResponse['course_info']['code'])) {
                 $aiRoadmapData['course_code'] = $fullResponse['course_info']['code'];
             }
 
-            // 4. Save to DB (This now has the correct 'course_code' key)
-            $roadmap = $this->saveRoadmap($aiRoadmapData, $request, $targetCareer);
+            // Override AI data with our determined Level/Type to ensure DB consistency
+            $aiRoadmapData['level'] = $level;
+
+            // 4. Save to DB
+            // Note: We create a temporary request object or modify the existing one
+            // to ensure saveRoadmap uses the correct type/level we determined above.
+            $request->merge(['type' => $type]);
+
+            $roadmap = $this->saveRoadmap($aiRoadmapData, $request, $targetCareerName);
 
             return response()->json(['data' => $roadmap->load('phases.tasks')]);
+
         } catch (\Exception $e) {
             return response()->json([
                 'error' => $e->getMessage(),
@@ -159,12 +225,13 @@ class RoadmapController extends Controller
         }
     }
 
-    private function preparePayload(Request $request, string $targetCareer, array $skills, array $userCourses): array
+    // Change the signature to accept type, query, and level
+    private function preparePayload(string $type, string $query, string $level, string $targetCareer, array $skills, array $userCourses): array
     {
         return [
-            'type' => $request->input('type'),
-            'query' => $request->input('query'),
-            'level' => $request->input('level'),
+            'type' => $type,    // Use the passed variable, not $request->input
+            'query' => $query,  // Use the passed variable (which holds missing_skills in scenario 2)
+            'level' => $level,  // Use the passed variable (Intermediate in scenario 2)
             'targetCareer' => $targetCareer,
             'user_courses' => $userCourses,
             'skills' => $skills,

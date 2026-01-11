@@ -16,6 +16,7 @@ return new class extends Migration
             $table->id();
             $table->string('course_code', 20)->unique();
             $table->string('course_name');
+            $table->text('description')->nullable();
             $table->string('next_course_code')->nullable();
             $table->enum('category', ['MAJOR', 'ELECTIVE', 'FOCUS', 'UNIVERSITY', 'OTHER'])->default('MAJOR');
             $table->unsignedTinyInteger('credit')->default(3);

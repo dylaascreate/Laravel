@@ -23,6 +23,8 @@ class AuthController extends Controller
             'password' => $validated['password'], // Auto-hashed by model cast
         ]);
 
+        $user->assignRole('student');
+
         return response()->json([
             'message' => 'User registered successfully',
             'user' => $user,
@@ -72,41 +74,48 @@ class AuthController extends Controller
         ]);
     }
 
-    // 1. Send Reset Link (The "Forgot Password" step)
-    // public function forgotPassword(Request $request)
-    // {
-    //     $request->validate(['email' => 'required|email']);
+    public function updateProfile(Request $request)
+    {
+        $user = $request->user();
 
-    //     $status = Password::sendResetLink($request->only('email'));
+        // [FIX] Use 'sometimes' so fields are not mandatory if not sent
+        $validated = $request->validate([
+            'name'          => 'sometimes|string|max:255',
+            'bio'           => 'sometimes|nullable|string|max:500',
+            'github'        => 'sometimes|nullable|url',
+            'linkedin'      => 'sometimes|nullable|url',
+            'career_id'     => 'sometimes|nullable|exists:careers,id',
+            'avatar'        => 'sometimes|nullable|url',
+        ]);
 
-    //     return $status === Password::RESET_LINK_SENT
-    //         ? response()->json(['message' => __($status)])
-    //         : response()->json(['message' => __($status)], 400);
-    // }
+        // Update other fields if present in the request
+        // This dynamically fills only the fields sent in $request
+        $user->fill($request->only(['name', 'bio', 'github', 'linkedin', 'career_id', 'avatar']));
 
-    // // 2. Reset Password (The actual update step)
-    // public function resetPassword(Request $request)
-    // {
-    //     $request->validate([
-    //         'token' => 'required',
-    //         'email' => 'required|email',
-    //         'password' => 'required|min:8|confirmed',
-    //     ]);
+        $user->save();
 
-    //     $status = Password::reset(
-    //         $request->only('email', 'password', 'password_confirmation', 'token'),
-    //         function (User $user, string $password) {
-    //             $user->forceFill([
-    //                 'password' => $password // Model casting handles hashing automatically
-    //             ])->setRememberToken(Str::random(60));
+        return response()->json([
+            'message' => 'Profile updated successfully',
+            'user' => $user->load('career'),
+        ]);
+    }
 
-    //             $user->save();
-    //         }
-    //     );
+    /**
+     * PUT /api/user/password
+     * Updates the authenticated user's password
+     */
+    public function updatePassword(Request $request)
+    {
+        $validated = $request->validate([
+            'current_password' => 'required|current_password',
+            'password'         => 'required|string|min:8|confirmed',
+        ]);
 
-    //     return $status === Password::PASSWORD_RESET
-    //         ? response()->json(['message' => __($status)])
-    //         : response()->json(['message' => __($status)], 400);
-    // }
+        $request->user()->update([
+            'password' => Hash::make($validated['password']),
+        ]);
+
+        return response()->json(['message' => 'Password updated successfully']);
+    }
 
 }

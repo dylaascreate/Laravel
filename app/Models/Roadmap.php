@@ -16,7 +16,12 @@ class Roadmap extends Model
         'progress',
         'level',        // from AI
         'estimate',     // from AI
-        'course_code'   // from AI
+        'course_code',
+        'data' // or 'nodes', depending on your migration
+    ];
+
+    protected $casts = [
+        'data' => 'array',
     ];
 
     public function course()

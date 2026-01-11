@@ -7,5 +7,5 @@ Route::get('/', function () {
 });
 
 Route::get('/{any}', function () {
-    return view('app'); // Replace 'app' with your main Vue blade file (e.g., 'welcome', 'index')
+    return view('welcome'); // Replace 'app' with your main Vue blade file (e.g., 'welcome', 'index')
 })->where('any', '.*');

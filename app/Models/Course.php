@@ -13,6 +13,7 @@ class Course extends Model
     protected $fillable = [
         'course_code',
         'course_name',
+        'description',
         'next_course_code',
         'category',
         'credit',
@@ -24,5 +25,13 @@ class Course extends Model
     protected $casts = [
         'associated_skills' => 'array',
         'course_content_outline' => 'array',
+        'credit' => 'integer'
     ];
+
+    public function students()
+    {
+        return $this->belongsToMany(User::class, 'course_user')
+            ->withPivot('status', 'grade')
+            ->withTimestamps();
+    }
 }
